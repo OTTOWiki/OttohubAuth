@@ -159,7 +159,9 @@
 				"ottohubauth-tab-local",
 				"ottohubauth-tab-hub",
 				"ottohubauth-tab-local-hint",
-				"ottohubauth-tab-hub-hint"
+				"ottohubauth-tab-hub-hint",
+				"ottohubauth-field-password",
+				"ottohubauth-field-password-placeholder"
 			]
 		},
 		"ext.ottohubProfile": {

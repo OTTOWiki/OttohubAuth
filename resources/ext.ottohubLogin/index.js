@@ -128,6 +128,38 @@
 		var panels = { local: panelLocal, hub: panelHub };
 		var tabs = { local: tabLocal, hub: tabHub };
 
+		// 共用的口令输入框（服务端把本地口令与 OTTOhub 口令合并成同一个字段，见 OttohubLoginRequest）
+		// —— 它不在任何一页里，切换标签时只换它的标签/占位符文案。
+		var sharedPassword = form.querySelector(
+			'#wpPassword1, input[name="wpPassword"], input[name="password"]'
+		);
+		var passwordLabel = null;
+		var passwordLabelLocal = '';
+		var passwordPlaceholderLocal = '';
+		if ( sharedPassword ) {
+			passwordLabelLocal = sharedPassword.placeholder || '';
+			var label = sharedPassword.id
+				? form.querySelector( 'label[for="' + sharedPassword.id + '"]' )
+				: null;
+			if ( label ) {
+				passwordLabel = label.querySelector( '.cdx-label__label__text' ) || label;
+				passwordLabelLocal = passwordLabel.textContent;
+			}
+		}
+
+		function applyPasswordTexts( mode ) {
+			if ( !sharedPassword ) {
+				return;
+			}
+			var isHub = mode === 'hub';
+			if ( passwordLabel ) {
+				passwordLabel.textContent = isHub ?
+					text( 'ottohubauth-field-password' ) : passwordLabelLocal;
+			}
+			sharedPassword.placeholder = isHub ?
+				text( 'ottohubauth-field-password-placeholder' ) : passwordPlaceholderLocal;
+		}
+
 		function inputs( panel ) {
 			return Array.prototype.slice.call( panel.querySelectorAll( 'input, select, textarea' ) );
 		}
@@ -155,6 +187,7 @@
 				tabs[ m ].setAttribute( 'aria-selected', on ? 'true' : 'false' );
 				tabs[ m ].tabIndex = on ? 0 : -1;
 			} );
+			applyPasswordTexts( mode );
 			storeTab( mode );
 			if ( focus ) {
 				tabs[ mode ].focus();

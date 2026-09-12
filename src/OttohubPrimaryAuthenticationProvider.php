@@ -143,7 +143,7 @@ class OttohubPrimaryAuthenticationProvider extends AbstractPrimaryAuthentication
 
 		$clientIp = $this->manager->getRequest()->getIP() ?? '';
 		$account = trim( (string)$req->ottohubAccount );
-		$password = (string)$req->ottohubPassword;
+		$password = (string)$req->password;
 
 		if ( $account === '' || $password === '' ) {
 			return $this->fail( 'ottohubauth-error-empty' );

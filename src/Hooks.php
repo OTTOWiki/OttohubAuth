@@ -47,13 +47,17 @@ class Hooks {
 	 * ⚠️ 这里用的是 **AuthManager 字段描述符的键**（= AuthenticationRequest 的属性名），
 	 * 不是 HTML 里的 input name（HTMLForm 会加 `wp` 前缀：username → wpName）。
 	 * 2026-09-12 实测的键：username, password, rememberMe, loginattempt, linkcontainer,
-	 * passwordReset, ottohubAccount, ottohubPassword。
+	 * passwordReset, ottohubAccount（`password` 现在由核心与 OttohubLoginRequest **共用**）。
 	 */
-	private const LOCAL_LOGIN_FIELDS = [ 'username', 'password' ];
+	private const LOCAL_LOGIN_FIELDS = [ 'username' ];
 	/** 「OTTOhub」字段（来自 OttohubLoginRequest 的属性名） */
-	private const HUB_LOGIN_FIELDS = [ 'ottohubAccount', 'ottohubPassword' ];
-	/** 「记住登录状态」两组共用，不放进任何一页 */
-	private const SHARED_LOGIN_FIELDS = [ 'rememberMe' ];
+	private const HUB_LOGIN_FIELDS = [ 'ottohubAccount' ];
+	/**
+	 * 两组**共用**、放在标签页之外的字段：
+	 *  - `password`：核心与 OttohubLoginRequest 共用同一个口令输入框（见该类注释）
+	 *  - `rememberMe`：核心的"记住我的登录状态"，两种登录方式都适用
+	 */
+	private const SHARED_LOGIN_FIELDS = [ 'rememberMe', 'password' ];
 
 	/** Special:UserLogin 的规范名（注意：注册名是 `Userlogin`，小写 l —— 踩过） */
 	private const LOGIN_PAGE_NAME = 'UserLogin';

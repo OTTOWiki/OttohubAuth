@@ -13,8 +13,11 @@
 
 namespace MediaWiki\Extension\OttohubAuth\Maintenance;
 
+use MediaWiki\Auth\AuthManager;
+use MediaWiki\Auth\AuthenticationRequest;
 use MediaWiki\Extension\OttohubAuth\OttohubAccountStore;
 use MediaWiki\Extension\OttohubAuth\OttohubClient;
+use MediaWiki\Extension\OttohubAuth\OttohubLoginRequest;
 use MediaWiki\Extension\OttohubAuth\OttohubPrimaryAuthenticationProvider;
 use MediaWiki\Extension\OttohubAuth\OttohubResponse;
 use MediaWiki\Maintenance\Maintenance;
@@ -123,6 +126,46 @@ class Probe extends Maintenance {
 		} else {
 			$this->err( 'table ' . OttohubAccountStore::TABLE . ' does NOT exist' );
 		}
+
+		// 6b) 登录页共用口令框（离线不变量检查）
+		//
+		// 站长 2026-09-12 要求：OTTOhub 口令与站内口令**共用同一个输入框**。
+		// 实现方式是让 OttohubLoginRequest 的口令字段也叫 `password`（与核心
+		// PasswordAuthenticationRequest 同名）：字段合并后表单只渲染一个输入框，同一个值被分别
+		// 填进两个请求；两条路径靠 loadFromSubmission() 的"字段缺失就丢弃该请求"互不干扰。
+		//
+		// ⚠️ 这里刻意用 **AuthManager 真正产出的那组请求**（而不是自己 new），否则会漏掉
+		//    provider 对请求对象做的初始化（例如核心请求的 action 必须是 ACTION_LOGIN，
+		//    否则 getFieldInfo() 会多出一个 retype 字段，导致 loadFromSubmission() 直接返回 false）。
+		$loginRequests = $services->getAuthManager()
+			->getAuthenticationRequests( AuthManager::ACTION_LOGIN, null );
+		$coreReq = AuthenticationRequest::getRequestByClass(
+			$loginRequests, \MediaWiki\Auth\PasswordAuthenticationRequest::class );
+		$hubReq = AuthenticationRequest::getRequestByClass( $loginRequests, OttohubLoginRequest::class );
+		$this->ok( 'login form carries both a core password request and the hub request: '
+			. ( $coreReq && $hubReq ? 'yes' : 'NO' ) );
+
+		$hubInfo = ( new OttohubLoginRequest() )->getFieldInfo();
+		$this->ok( 'hub login request uses the shared `password` field: '
+			. ( isset( $hubInfo['password'] ) && !isset( $hubInfo['ottohubPassword'] )
+				? 'yes' : 'NO (fields: ' . implode( ',', array_keys( $hubInfo ) ) . ')' ) );
+
+		$hubOnly = AuthenticationRequest::loadRequestsFromSubmission(
+			[ clone $coreReq, clone $hubReq ],
+			[ 'ottohubAccount' => 'someone', 'password' => 'shared-secret' ]
+		);
+		$this->ok( 'ottohub-only submission loads ONLY the hub request, with the shared password: '
+			. ( count( $hubOnly ) === 1 && $hubOnly[0] instanceof OttohubLoginRequest
+				&& $hubOnly[0]->password === 'shared-secret' ? 'yes' : 'NO' ) );
+
+		$coreOnly = AuthenticationRequest::loadRequestsFromSubmission(
+			[ clone $coreReq, clone $hubReq ],
+			[ 'username' => 'SomeUser', 'password' => 'shared-secret' ]
+		);
+		$this->ok( 'local-only submission loads ONLY the core request (local login unaffected): '
+			. ( count( $coreOnly ) === 1
+				&& $coreOnly[0] instanceof \MediaWiki\Auth\PasswordAuthenticationRequest
+				&& $coreOnly[0]->password === 'shared-secret' ? 'yes' : 'NO' ) );
 
 		// 7) 日志自检：确认没有把调试日志开到文件里
 		$this->ok( 'wgDebugLogFile set: '
