@@ -1,0 +1,184 @@
+{
+	"name": "OttohubAuth",
+	"type": "other",
+	"author": [
+		"OTTOWiki maintainers"
+	],
+	"descriptionmsg": "ottohubauth-desc",
+	"license-name": "GPL-2.0-or-later",
+	"requires": {
+		"MediaWiki": ">= 1.46.0"
+	},
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\OttohubAuth\\": "src/"
+	},
+	"ServiceWiringFiles": [
+		"ServiceWiring.php"
+	],
+	"MessagesDirs": {
+		"OttohubAuth": [
+			"i18n"
+		]
+	},
+	"AuthManagerAutoConfig": {
+		"primaryauth": {
+			"OttohubPrimaryAuthenticationProvider": {
+				"class": "MediaWiki\\Extension\\OttohubAuth\\OttohubPrimaryAuthenticationProvider",
+				"services": [
+					"OttohubAuth.Client",
+					"OttohubAuth.AccountStore",
+					"OttohubAuth.Throttle",
+					"UserFactory",
+					"UserNameUtils",
+					"ConnectionProvider",
+					"PasswordFactory",
+					"MainConfig"
+				]
+			}
+		}
+	},
+	"SpecialPages": {
+		"OttohubAccounts": {
+			"class": "MediaWiki\\Extension\\OttohubAuth\\SpecialOttohubAccounts",
+			"services": [
+				"OttohubAuth.AccountStore",
+				"OttohubAuth.Client",
+				"OttohubAuth.Provider",
+				"UserFactory"
+			]
+		},
+		"LinkOttohub": {
+			"class": "MediaWiki\\Extension\\OttohubAuth\\SpecialLinkOttohub",
+			"services": [
+				"OttohubAuth.AccountStore",
+				"OttohubAuth.Client",
+				"OttohubAuth.Provider"
+			]
+		}
+	},
+	"HookHandlers": {
+		"main": {
+			"class": "MediaWiki\\Extension\\OttohubAuth\\Hooks",
+			"services": [
+				"AuthManager",
+				"UserFactory",
+				"OttohubAuth.AccountStore",
+				"SpecialPageFactory",
+				"OttohubAuth.Provider"
+			]
+		},
+		"schema": {
+			"class": "MediaWiki\\Extension\\OttohubAuth\\SchemaHooks"
+		},
+		"profile": {
+			"class": "MediaWiki\\Extension\\OttohubAuth\\ProfileHooks",
+			"services": [
+				"OttohubAuth.AccountStore",
+				"UserFactory",
+				"UserOptionsManager"
+			]
+		},
+		"moderationApproved": {
+			"class": "MediaWiki\\Extension\\OttohubAuth\\ModerationApprovedHooks"
+		}
+	},
+	"Hooks": {
+		"SpecialPageBeforeExecute": "main",
+		"SpecialPageAfterExecute": "main",
+		"AuthChangeFormFields": "main",
+		"GetPreferences": "main",
+		"LoadExtensionSchemaUpdates": "schema",
+		"UserProfileRightSideAfterActivity": "profile",
+		"PageSaveComplete": "moderationApproved"
+	},
+	"JobClasses": {
+		"OttohubNotify": "MediaWiki\\Extension\\OttohubAuth\\OttohubNotifyJob"
+	},
+	"AvailableRights": [
+		"ottohubauth-manage"
+	],
+	"GroupPermissions": {
+		"sysop": {
+			"ottohubauth-manage": true
+		},
+		"bureaucrat": {
+			"ottohubauth-manage": true
+		}
+	},
+	"LogTypes": [
+		"ottohubauth"
+	],
+	"LogActionsHandlers": {
+		"ottohubauth/*": "LogFormatter"
+	},
+	"config": {
+		"OttohubAuth_ApiBase": {
+			"value": "https://api.ottohub.cn"
+		},
+		"OttohubAuth_Timeout": {
+			"value": 8
+		},
+		"OttohubAuth_Throttle": {
+			"value": {
+				"count": 5,
+				"window": 600
+			}
+		},
+		"OttohubAuth_NotifyEnable": {
+			"value": true
+		},
+		"OttohubAuth_NotifyEvents": {
+			"value": []
+		},
+		"OttohubAuth_NotifyRateLimit": {
+			"value": {
+				"count": 10,
+				"window": 3600
+			}
+		},
+		"OttohubAuth_SenderAccount": {
+			"value": ""
+		}
+	},
+	"manifest_version": 2,
+	"ResourceModules": {
+		"ext.ottohubLogin": {
+			"localBasePath": "resources/ext.ottohubLogin",
+			"scripts": [
+				"index.js"
+			],
+			"styles": [
+				"index.css"
+			],
+			"targets": [
+				"desktop",
+				"mobile"
+			],
+			"messages": [
+				"ottohubauth-tablist-label",
+				"ottohubauth-tab-local",
+				"ottohubauth-tab-hub",
+				"ottohubauth-tab-local-hint",
+				"ottohubauth-tab-hub-hint"
+			]
+		},
+		"ext.ottohubProfile": {
+			"localBasePath": "resources/ext.ottohubProfile",
+			"scripts": [
+				"index.js"
+			],
+			"styles": [
+				"index.css"
+			],
+			"targets": [
+				"desktop",
+				"mobile"
+			],
+			"messages": [
+				"ottohubauth-profile-uid",
+				"ottohubauth-profile-fallback",
+				"ottohubauth-profile-unnamed"
+			]
+		}
+	}
+}

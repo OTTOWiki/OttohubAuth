@@ -1,0 +1,28 @@
+# 凭据绝不入库（本扩展自己的凭据文件都放在站点根之外，这里做一层保险）
+secrets/
+*.env
+*.token
+*credentials*.json
+*sender*.json
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# 备份与打包产物
+*.bak
+*.bak-*
+*.orig
+*.rej
+*.tar
+*.tar.gz
+*.zip
+
+# 依赖（本扩展零 composer 依赖，防止误提交）
+/vendor/
+/node_modules/

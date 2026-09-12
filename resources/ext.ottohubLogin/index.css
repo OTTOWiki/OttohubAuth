@@ -1,0 +1,80 @@
+/* 登录页的「站内账号 / OTTOhub 账号」标签页 + 登录常见问题。
+   颜色都用公民（Citizen）皮肤/Codex 的 CSS 变量并带兜底值，浅色深色都能看。 */
+
+.ottohubauth-tabs {
+	display: flex;
+	gap: 0.25rem;
+	margin: 0 0 1rem;
+	border-bottom: 1px solid var( --border-color-base, #c8ccd1 );
+}
+
+.ottohubauth-tab {
+	appearance: none;
+	background: none;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	padding: 0.5rem 0.75rem;
+	font: inherit;
+	font-weight: 500;
+	color: var( --color-base--subtle, #54595d );
+	cursor: pointer;
+}
+
+.ottohubauth-tab:hover {
+	color: var( --color-base, #202122 );
+}
+
+.ottohubauth-tab[ aria-selected="true" ] {
+	border-bottom-color: var( --color-progressive, #36c );
+	color: var( --color-base, #202122 );
+	font-weight: 700;
+}
+
+.ottohubauth-tab:focus-visible {
+	outline: 2px solid var( --color-progressive, #36c );
+	outline-offset: -2px;
+}
+
+.ottohubauth-panel[ hidden ] {
+	display: none;
+}
+
+.ottohubauth-panel-hint {
+	margin: 0 0 0.75rem;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	color: var( --color-base--subtle, #54595d );
+}
+
+/* 登录常见问题：表单下方，与注册页的 FAQ 保持同一套排版风格 */
+.ottohubauth-login-faq {
+	margin-top: 1.75rem;
+	padding-top: 1rem;
+	border-top: 1px solid var( --border-color-base, #c8ccd1 );
+	font-size: 0.9375rem;
+	line-height: 1.65;
+}
+
+.ottohubauth-login-faq dl,
+.ottohubauth-login-faq ul {
+	margin: 0.5rem 0 0;
+}
+
+.ottohubauth-login-faq dt {
+	font-weight: 700;
+	margin-top: 0.75rem;
+}
+
+.ottohubauth-login-faq dd {
+	margin: 0.15rem 0 0;
+}
+
+/* 屏幕很窄时标签页别换行挤成一团 */
+@media ( max-width: 480px ) {
+	.ottohubauth-tab {
+		flex: 1 1 auto;
+		text-align: center;
+		padding: 0.5rem 0.4rem;
+	}
+}

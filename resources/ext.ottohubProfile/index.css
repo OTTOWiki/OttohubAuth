@@ -1,0 +1,39 @@
+/* 阶段 2：OTTOhub 个人资料区块的样式（命名空间化，避免与 SocialProfile / 皮肤冲突） */
+
+.ottohubauth-profile-block {
+	clear: both;
+	margin: 10px 0;
+	padding: 8px 10px;
+	border: 1px solid rgba(128, 128, 128, 0.35);
+	border-radius: 6px;
+}
+
+.ottohubauth-profile-block .ottohubauth-profile-name {
+	margin-bottom: 2px;
+	font-weight: bold;
+	word-break: break-word;
+}
+
+.ottohubauth-profile-block .ottohubauth-avatar {
+	float: right;
+	width: 75px;
+	height: 75px;
+	margin: 0 0 6px 8px;
+	border-radius: 6px;
+	object-fit: cover;
+}
+
+.ottohubauth-profile-block .ottohubauth-profile-uid {
+	color: #72777d;
+	font-size: 0.85em;
+}
+
+.ottohubauth-profile-block .ottohubauth-profile-intro {
+	margin-top: 6px;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.ottohubauth-profile-block .ottohubauth-profile-fallback {
+	margin: 0;
+}
