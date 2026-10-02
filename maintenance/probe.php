@@ -167,6 +167,44 @@ class Probe extends Maintenance {
 				&& $coreOnly[0] instanceof \MediaWiki\Auth\PasswordAuthenticationRequest
 				&& $coreOnly[0]->password === 'shared-secret' ? 'yes' : 'NO' ) );
 
+		// 6c) 只读诊断：已绑定 OTTOhub 的账号里，有几个因为"邮箱未确认"而不能编辑
+		//
+		// 背景（2026-10-02）：站长反馈"新用户好像没有编辑权限"。根因是本站开了
+		// `$wgEmailConfirmToEdit = true`：`User::isEmailConfirmed()` 要求邮箱**格式合法**且已确认。
+		// 于是两类新用户被挡住：① OTTOhub 返回的邮箱格式不合法（曾被原样写进 user_email）；
+		// ② 本地早就有邮箱但从未确认过（D13 不动已有邮箱）。这条诊断把这批人列出来。
+		$emailGate = (bool)$config->get( 'EmailConfirmToEdit' );
+		$this->ok( 'wgEmailConfirmToEdit = ' . ( $emailGate ? 'true' : 'false' ) );
+		if ( $emailGate ) {
+			$probeTitle = \MediaWiki\Title\Title::newFromText( 'OttohubAuthProbeSandbox' );
+			$permissionManager = $services->getPermissionManager();
+			$userFactoryForGate = $services->getUserFactory();
+			$gateRows = $dbr->newSelectQueryBuilder()
+				->select( [ 'oa_user_id', 'user_name', 'user_email', 'user_email_authenticated' ] )
+				->from( OttohubAccountStore::TABLE )
+				->join( 'user', null, 'user_id = oa_user_id' )
+				->caller( __METHOD__ )->fetchResultSet();
+			$gateBlocked = 0;
+			$gateInvalid = 0;
+			$gateNames = [];
+			foreach ( $gateRows as $row ) {
+				$email = (string)$row->user_email;
+				if ( $email !== '' && !\MediaWiki\Parser\Sanitizer::validateEmail( $email ) ) {
+					$gateInvalid++;
+				}
+				$boundUser = $userFactoryForGate->newFromId( (int)$row->oa_user_id );
+				if ( $permissionManager->getPermissionErrors( 'edit', $boundUser, $probeTitle ) ) {
+					$gateBlocked++;
+					if ( count( $gateNames ) < 5 ) {
+						$gateNames[] = $row->user_name;
+					}
+				}
+			}
+			$this->ok( 'bound accounts that cannot edit (email gate): ' . $gateBlocked
+				. ( $gateNames ? ' (' . implode( ', ', $gateNames ) . ')' : '' ) );
+			$this->ok( 'bound accounts whose stored email is malformed: ' . $gateInvalid );
+		}
+
 		// 7) 日志自检：确认没有把调试日志开到文件里
 		$this->ok( 'wgDebugLogFile set: '
 			. ( $config->get( 'DebugLogFile' ) !== '' ? 'YES (check!)' : 'no' ) );

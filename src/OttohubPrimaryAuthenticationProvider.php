@@ -24,6 +24,7 @@ use MediaWiki\Auth\AuthenticationResponse;
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Config\Config;
 use MediaWiki\Message\Message;
+use MediaWiki\Parser\Sanitizer;
 use MediaWiki\Password\PasswordFactory;
 use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
@@ -562,8 +563,24 @@ class OttohubPrimaryAuthenticationProvider extends AbstractPrimaryAuthentication
 	/**
 	 * 邮箱策略（D4 + D13）：**只在本地邮箱为空时**写入 OTTOhub 邮箱并直接确认。
 	 */
+	/**
+	 * 把 OTTOhub 的邮箱写进本地账号并标记为"已确认"（D13：仅当本地邮箱为空才写）。
+	 *
+	 * ⚠️ **必须先校验格式**（2026-10-02 修的 bug）：OTTOhub 的 `email` 字段并不保证是合法邮箱 ——
+	 * 实测有账号返回的是 6 字节、根本没有 `@` 的串。直接写进去会同时踩两个坑：
+	 *   ① `User::isEmailConfirmed()` 会**再校验一次格式**，于是 `$wgEmailConfirmToEdit = true` 的
+	 *      站点上该用户**永远不能编辑**（报 `confirmedittext`），而他的邮箱"看起来已确认"；
+	 *   ② `user_email` 里留下垃圾值，密码重置/邮件通知都会往那里发。
+	 * 所以格式不合法就什么都不写（记一条日志，不打邮箱内容）。
+	 */
 	private function maybeSetEmail( User $user, ?string $email ): void {
 		if ( $email === null || $email === '' || $user->getEmail() !== '' ) {
+			return;
+		}
+		if ( !Sanitizer::validateEmail( $email ) ) {
+			$this->logger->warning( 'OttohubAuth: OTTOhub 返回的邮箱格式不合法，未写入本地账号', [
+				'localUserId' => $user->getId(),
+			] );
 			return;
 		}
 		$user->setEmail( $email );

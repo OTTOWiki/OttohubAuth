@@ -20,6 +20,7 @@ use MediaWiki\Auth\AuthManager;
 use MediaWiki\Html\Html;
 use MediaWiki\Linker\Linker;
 use MediaWiki\Logger\LoggerFactory;
+use MediaWiki\MediaWikiServices;
 use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\SpecialPage\SpecialPageFactory;
 use MediaWiki\Title\Title;
@@ -68,6 +69,9 @@ class Hooks {
 	private SpecialPageFactory $specialPageFactory;
 	private OttohubProviderFactory $providerFactory;
 	private LoggerInterface $logger;
+
+	/** 每个请求内记住"哪些本地账号已绑定 OTTOhub"（见 onEmailConfirmed），避免反复查库 */
+	private array $hubBoundMemo = [];
 
 	public function __construct(
 		AuthManager $authManager,
@@ -149,6 +153,54 @@ class Hooks {
 		foreach ( self::SHARED_LOGIN_FIELDS as $field ) {
 			self::appendCssClass( $formDescriptor, $field, 'ottohubauth-shared-field' );
 		}
+	}
+
+	// ------------------------------------------------------------------
+	// 编辑门槛豁免（站长 2026-10-02 决定）
+	// ------------------------------------------------------------------
+
+	/**
+	 * 让「已绑定 OTTOhub」的账号被视为邮箱已确认 —— 从而不受 `$wgEmailConfirmToEdit` 阻挡。
+	 *
+	 * 背景（站长反馈「新用户好像没有编辑权限」）：本站开了 `$wgEmailConfirmToEdit = true`，
+	 * 而 `User::isEmailConfirmed()` 要求邮箱**格式合法且已确认**。新用户是 OTTOhub 建号的
+	 * （本地没有口令，身份由 OTTOhub 认证），而本地注册本来就已关闭 —— 建号只能走 OTTOhub，
+	 * 再拿"wiki 邮箱确认"挡他们没有意义；何况新用户的编辑本来也会进 Moderation 待审队列，
+	 * 所以"能提交"不等于"直接上线"。
+	 *
+	 * 为什么走这个钩子：PermissionManager 对 `edit` 的邮箱检查是写死在方法体里的
+	 * （`$status->fatal( 'confirmedittext' )`），没有权限项也没有 hook 能移除它；
+	 * 而 `User::isEmailConfirmed()` 会**先**问 `EmailConfirmed` 钩子，钩子返回 false 即以
+	 * `$confirmed` 为准。这里是唯一的口子。
+	 *
+	 * ⚠️ 副作用：这类账号发邮件通知时不再受"确认状态"限制。但 `Notifier::notifyWithEmail()`
+	 * 自己还会用 `Sanitizer::validateEmail()` 校验地址，所以不会往非法地址发信。
+	 *
+	 * @param User $user
+	 * @param bool &$confirmed
+	 * @return bool
+	 */
+	public function onEmailConfirmed( $user, &$confirmed ) {
+		if ( !$user instanceof User || !$user->isRegistered() ) {
+			return true;
+		}
+		// 可配置总开关：站长若想恢复"必须确认 wiki 邮箱才能编辑"，把它设为 false 即可（无需改代码）
+		if ( !MediaWikiServices::getInstance()->getMainConfig()
+			->get( 'OttohubAuth_ExemptEmailConfirmToEdit' )
+		) {
+			return true;
+		}
+		$localUserId = $user->getId();
+		if ( !isset( $this->hubBoundMemo[$localUserId] ) ) {
+			// 每个请求只查一次库：isEmailConfirmed() 在一次请求里会被调用多次
+			$this->hubBoundMemo[$localUserId] =
+				$this->store->getHubUidByLocalUser( $localUserId ) !== null;
+		}
+		if ( $this->hubBoundMemo[$localUserId] ) {
+			$confirmed = true;
+			return false;
+		}
+		return true;
 	}
 
 	private static function appendCssClass( array &$formDescriptor, string $field, string $class ): void {

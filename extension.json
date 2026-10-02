@@ -89,7 +89,8 @@
 		"GetPreferences": "main",
 		"LoadExtensionSchemaUpdates": "schema",
 		"UserProfileRightSideAfterActivity": "profile",
-		"PageSaveComplete": "moderationApproved"
+		"PageSaveComplete": "moderationApproved",
+		"EmailConfirmed": "main"
 	},
 	"JobClasses": {
 		"OttohubNotify": "MediaWiki\\Extension\\OttohubAuth\\OttohubNotifyJob"
@@ -138,6 +139,9 @@
 		},
 		"OttohubAuth_SenderAccount": {
 			"value": ""
+		},
+		"OttohubAuth_ExemptEmailConfirmToEdit": {
+			"value": true
 		}
 	},
 	"manifest_version": 2,
