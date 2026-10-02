@@ -67,6 +67,7 @@ php maintenance/run.php OttohubAuth:schema
 | `$wgOttohubAuth_NotifyEvents` | `[]` | 事件级白名单；留空＝由下面的类别可用性决定 |
 | `$wgOttohubAuth_NotifyRateLimit` | `['count' => 10, 'window' => 3600]` | 每个收件人每窗口最多推几条；`count <= 0` 不限 |
 | `$wgOttohubAuth_SenderAccount` | `''` | 发件账号凭据文件的**路径**（见下）。留空＝不推送 |
+| `$wgOttohubAuth_ExemptEmailConfirmToEdit` | `true` | 让**已绑定 OTTOhub** 的账号不受 `$wgEmailConfirmToEdit` 阻挡（见下方「编辑门槛」） |
 
 ### 阶段 3 的接线（必须写在 LocalSettings.php）
 
@@ -112,6 +113,21 @@ $wgOttohubAuth_SenderAccount = '/path/outside/webroot/ottohub-sender.json';
 
 凭据只在服务端读取；登录换来的 token 缓存在对象缓存（TTL 30 分钟），
 **凭据与 token 都不写日志、不进 URL**（POST 的 token 放 JSON body）。
+
+### 编辑门槛（`$wgEmailConfirmToEdit`）
+
+本站这类 wiki 常开 `$wgEmailConfirmToEdit = true`，而 `User::isEmailConfirmed()` 要求邮箱
+**格式合法且已确认**。OTTOhub 建号的用户本地没有口令，身份由 OTTOhub 认证；如果 OTTOhub
+没给出合法邮箱（或本地邮箱从未确认），他们会**一个页面都不能编辑**。
+
+本扩展默认（`$wgOttohubAuth_ExemptEmailConfirmToEdit = true`）把**已绑定 OTTOhub** 的账号
+视为邮箱已确认，从而免于该门槛 —— 由 `EmailConfirmed` 钩子实现（`PermissionManager` 对 `edit`
+的邮箱检查是写死的，没有权限项、也没有能移除它的 hook，这是唯一的口子）。
+不想这样就把该项设为 `false`，行为恢复原样。
+
+⚠️ 另外注意：OTTOhub 的 `email` 字段**不保证是合法邮箱**（实测出现过没有 `@` 的串），
+所以写入前必须 `Sanitizer::validateEmail()` 校验 —— 否则会出现"邮箱看起来已确认、
+却因为格式非法永远不能编辑"的账号。
 
 ## 上游契约（实测）
 
